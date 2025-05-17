@@ -20,6 +20,17 @@ public class Product {
 
     @Transient
     private String environment;
+    
+    @Transient
+    private double convertedPrice;
+
+	public double getConvertedPrice() {
+		return convertedPrice;
+	}
+
+	public void setConvertedPrice(double convertPrice) {
+		this.convertedPrice = convertPrice;
+	}
 
 	public Long getId() {
 		return id;
@@ -85,10 +96,6 @@ public class Product {
 		this.environment = environment;
 	}
 
-	public void setConvertedPrice(double price2) {
-		// TODO Auto-generated method stub
-		
-	}
 
    
 }

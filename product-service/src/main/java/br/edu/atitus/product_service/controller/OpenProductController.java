@@ -1,9 +1,13 @@
 package br.edu.atitus.product_service.controller;
 
 
+import br.edu.atitus.product_service.clients.CurrencyClient;
+import br.edu.atitus.product_service.clients.CurrencyResponse;
 import br.edu.atitus.product_service.entities.Product;
 import br.edu.atitus.product_service.repositories.ProductRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.openfeign.support.ResponseEntityDecoder;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -13,25 +17,33 @@ import java.util.Optional;
 public class OpenProductController {
 
     private final ProductRepository repository;
+    private final CurrencyClient currencyClient;
 
     @Value("${server.port}")
     private String port;
 
-    public OpenProductController(ProductRepository repository) {
+    public OpenProductController(ProductRepository repository, CurrencyClient currencyClient) {
+    	super();
         this.repository = repository;
+		this.currencyClient = currencyClient;
     }
 
     @GetMapping("/{id}/{currency}")
-    public Product findProduct(@PathVariable Long id, @PathVariable String currency) {
-        Optional<Product> product = repository.findById(id);
+    public ResponseEntity<Product> findProduct(@PathVariable Long id, @PathVariable String currency) {
+        Product product = repository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
 
-        if (product.isPresent()) {
-            Product p = product.get();
-            p.setEnvironment("Product-Service PORT: " + port);
-            p.setConvertedPrice(p.getPrice()); // simulação de conversão
-            return p;
+            product.setEnvironment("Product-Service PORT: " + port);
+            
+        
+        if (currency.equals(product.getCurrency()))
+        	product.setConvertedPrice(product.getPrice());
+        else {
+        	CurrencyResponse currencyResponse = currencyClient.getCurrency(product.getPrice(), product.getCurrency(), currency);
+        	product.setConvertedPrice(currencyResponse.getConvertedValue());
+        	product.setEnvironment(product.getEnvironment() +  " - " + currencyResponse.getEnviroment());
         }
 
-        throw new RuntimeException("Product not found");
+        return ResponseEntity.ok(product);
+        
     }
 }
